@@ -30,7 +30,7 @@ or grab the zip from the releases page
 
 ## notes
 
-- the viewer reads and writes the mapview mod's folder in the game's mods folder, and reads the map from the game's data folder. both paths are set at the top of Form1.cs
+- the viewer reads and writes the mapview mod's folder in the game's mods folder, and reads the map from the game's data folder. the viewer finds the game folder through steam on its own. if it cant, it asks you to pick it once and remembers it
 - hobby project so expect rough edges
 
 ## license

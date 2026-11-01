@@ -6,12 +6,12 @@ namespace horsey
     public partial class Form1 : Form
     {
         // The game's mods/mapview folder. The mapview mod reads refresh.req and writes horses.json here.
-        private const string ModDir = @"D:\SteamLibrary\steamapps\common\Horsey Game\mods\mapview";
+        private static readonly string ModDir = Path.Combine(GameFolder.Root, "mods", "mapview");
         private static readonly string RequestPath = Path.Combine(ModDir, "refresh.req");
         private static readonly string JsonPath = Path.Combine(ModDir, "horses.json");
 
         // The game's data folder. The map is read from here and never written.
-        private const string DataDir = @"D:\SteamLibrary\steamapps\common\Horsey Game\data";
+        private static readonly string DataDir = Path.Combine(GameFolder.Root, "data");
         private static readonly string TmxPath = Path.Combine(DataDir, "horsey.tmx");
 
         private static readonly TimeSpan ReplyTimeout = TimeSpan.FromSeconds(8);

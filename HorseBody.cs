@@ -4,7 +4,7 @@ namespace horsey
     public static class HorseBody
     {
         private static readonly Dictionary<string, int> indexByName = LoadIndexMap(
-            Path.Combine(@"D:\SteamLibrary\steamapps\common\Horsey Game", "gene_index_map.csv"));
+            Path.Combine(GameFolder.Root, "gene_index_map.csv"));
 
         private static Dictionary<string, int> LoadIndexMap(string path)
         {
