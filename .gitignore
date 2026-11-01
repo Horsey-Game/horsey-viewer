@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+publish/
+*.user
+*.suo
+*.cache
+.vs/
+
+# Test output
+TestResults/
+
+# Local secrets and keys
+*.pfx
+*.pem
+*.key
+.env
