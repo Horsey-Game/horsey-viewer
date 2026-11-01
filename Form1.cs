@@ -272,11 +272,7 @@ namespace horsey
             refreshButton.Enabled = true;
             try
             {
-                snapshot = MapSnapshot.Load(JsonPath);
-                LoadSprites(snapshot);
-                RelinkSelection();
-                statusLabel.Text = $"{snapshot.Horses.Count} horses on {snapshot.Location}, updated {DateTime.Now:HH:mm:ss}";
-                mapPanel.Invalidate();
+                ApplySnapshotAsync(MapSnapshot.Load(JsonPath));
             }
             catch (Exception ex) when (ex is IOException || ex is System.Text.Json.JsonException)
             {
@@ -284,11 +280,34 @@ namespace horsey
             }
         }
 
-        // Copies each horse picture the mod saved, keyed by list position. The copies are held in memory,
-        // so the game can overwrite the PNG files on the next refresh.
-        private void LoadSprites(MapSnapshot snap)
+        // Reads the new snapshot and its pictures on a worker thread. The map keeps showing the last
+        // snapshot until the new one is ready, so the window does not freeze. A newer request that
+        // starts while this one is still loading replaces it.
+        private int snapshotGeneration;
+
+        private async void ApplySnapshotAsync(MapSnapshot fresh)
         {
+            int generation = ++snapshotGeneration;
+            statusLabel.Text = $"Loading {fresh.Horses.Count} horses...";
+            Dictionary<int, Bitmap> pictures = await Task.Run(() => ReadSprites(fresh));
+            if (IsDisposed || generation != snapshotGeneration)
+            {
+                DisposePictures(pictures);
+                return;
+            }
             DisposeSprites();
+            foreach (var pair in pictures) sprites[pair.Key] = pair.Value;
+            snapshot = fresh;
+            RelinkSelection();
+            statusLabel.Text = $"{fresh.Horses.Count} horses on {fresh.Location}, updated {DateTime.Now:HH:mm:ss}";
+            mapPanel.Invalidate();
+        }
+
+        // Copies each horse picture the mod saved, keyed by list position. The copies are held in memory,
+        // so the game can overwrite the PNG files on the next refresh. Runs on a worker thread.
+        private static Dictionary<int, Bitmap> ReadSprites(MapSnapshot snap)
+        {
+            var pictures = new Dictionary<int, Bitmap>();
             foreach (HorseDot h in snap.Horses)
             {
                 if (!h.Sprite) continue;
@@ -299,7 +318,7 @@ namespace horsey
                     using var stream = File.OpenRead(path);
                     using var image = Image.FromStream(stream);
                     Bitmap copy = new Bitmap(image);
-                    if (HasVisiblePixels(copy)) sprites[h.Pos] = copy;
+                    if (HasVisiblePixels(copy)) pictures[h.Pos] = copy;
                     else copy.Dispose();
                 }
                 catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is UnauthorizedAccessException)
@@ -307,6 +326,7 @@ namespace horsey
                     // A missing or unreadable picture just leaves that horse as a dot.
                 }
             }
+            return pictures;
         }
 
         private static bool HasVisiblePixels(Bitmap bmp)
@@ -325,6 +345,11 @@ namespace horsey
         {
             foreach (Bitmap b in sprites.Values) b.Dispose();
             sprites.Clear();
+        }
+
+        private static void DisposePictures(Dictionary<int, Bitmap> pictures)
+        {
+            foreach (Bitmap b in pictures.Values) b.Dispose();
         }
 
         // Fit-to-panel scale in panel pixels per tile, before zoom. Zero if there is nothing to draw.
